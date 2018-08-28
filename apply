@@ -7,7 +7,7 @@ set -euo pipefail
 ## Config ##
 
 targets_dir=./targets
-default_cmd=(terraform apply)
+default_cmd=(terraform_auto_apply)
 format_cmd=(terraform fmt)
 
 ## Functions ##
@@ -51,6 +51,17 @@ in_dir() (
   # Run command
   "$@"
 )
+
+# A smarter terraform apply
+terraform_auto_apply() {
+  if [[ ! -d .terraform ]]; then
+    log No .terraform folder found, running init
+    terraform init
+  fi
+
+  terraform get
+  terraform apply
+}
 
 ## Ensure we have the right dependencies
 
