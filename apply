@@ -29,11 +29,13 @@ die() {
   exit 1
 }
 
-# Usage: with_target <target_dir> [<cmd> [...<args>]]
+# Usage: with_dir <dir> <cmd> [...<args>]
 #
-# Note the parenthesis for the function body, this means that the function will
-# be executed in a new context
-with_target() (
+# Runs the command while inside the directory.
+#
+# The parenthesis in the function body ensure that the current directory will
+# not be changed in the parent process.
+in_dir() (
   local target=$1
   shift
 
@@ -62,6 +64,8 @@ fi
 
 typeset -a target_dirs
 typeset -a cmd
+
+target_dirs=()
 
 while [[ $# -gt 0 ]]; do
   arg=$1
@@ -100,5 +104,5 @@ fi
 "${format_cmd[@]}"
 
 for target_dir in "${target_dirs[@]}"; do
-  with_target "$target_dir" "${cmd[@]}"
+  in_dir "$target_dir" "${cmd[@]}"
 done
