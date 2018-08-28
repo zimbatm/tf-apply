@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+#
+# Wrapper around terraform
+#
+set -euo pipefail
+
+## Config ##
+
+targets_dir=./targets
+default_cmd=(terraform apply)
+format_cmd=(terraform fmt)
+
+## Functions ##
+
+show_usage() {
+  echo "Usage: ./apply [...<target_dir>] -- [<cmd> [..<arg>]]"
+  echo
+  echo "Example: ./apply targets/infra"
+}
+
+# Usage: log [...<message>]
+log() {
+  echo "### $*" >&2
+}
+
+# Usage: die [...<message>]
+die() {
+  log "ERROR:" "$@"
+  exit 1
+}
+
+# Usage: with_target <target_dir> [<cmd> [...<args>]]
+#
+# Note the parenthesis for the function body, this means that the function will
+# be executed in a new context
+with_target() (
+  local target=$1
+  shift
+
+  log "target=$target cmd=${*@Q}"
+
+  cd "$target"
+
+  # Allow to inject custom environment variables per target
+  if [[ -f .env ]]; then
+    source .env
+  fi
+
+  # Run command
+  "$@"
+)
+
+## Ensure we have the right dependencies
+
+cd "$(dirname "$0")"
+
+if [[ -z ${IN_NIX_SHELL:-} ]]; then
+  exec nix-shell --pure --run "./apply ${*@Q}"
+fi
+
+## Args parsing ##
+
+typeset -a target_dirs
+typeset -a cmd
+
+while [[ $# -gt 0 ]]; do
+  arg=$1
+  shift
+  case "$arg" in
+    -h | --help)
+      show_usage
+      exit
+      ;;
+    --)
+      break
+      ;;
+    *)
+      target_dirs+=("$arg")
+      ;;
+  esac
+done
+
+if [[ "${#target_dirs[@]}" -eq 0 ]]; then
+  target_dirs=("$targets_dir"/*)
+fi
+
+cmd=("$@")
+if [[ "${#cmd[@]}" -eq 0 ]]; then
+  cmd=("${default_cmd[@]}")
+fi
+
+## Main ##
+
+# load the environment variables
+if [[ -f .env ]]; then
+  source .env
+fi
+
+# format the code all of the time
+"${format_cmd[@]}"
+
+for target_dir in "${target_dirs[@]}"; do
+  with_target "$target_dir" "${cmd[@]}"
+done
