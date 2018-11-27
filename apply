@@ -2,6 +2,8 @@
 #
 # Wrapper around terraform
 #
+# Copied from https://github.com/zimbatm/tf-apply
+# Copyright 2018 zimbatm - licensed under MIT
 set -euo pipefail
 
 ## Config ##
@@ -29,7 +31,7 @@ die() {
   exit 1
 }
 
-# Usage: with_dir <dir> <cmd> [...<args>]
+# Usage: in_dir <dir> <cmd> [...<args>]
 #
 # Runs the command while inside the directory.
 #
